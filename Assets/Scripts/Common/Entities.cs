@@ -10,19 +10,12 @@ public enum Edirection : int
     Left,
 }
 
-
-public enum EEnvironmentBlock
+public enum EEnvironmentBlock : int
 {
-    None        = 0,
-    Wall        = 1,
-    Ground      = 2,
-    StartPoint  = 4,
-    ExitPoint   = 8,
-    Waypoint1   = 16,
-    Waypoint2   = 32,
-    Waypoint3   = 64,
-    HasDoor     = 128,
-    HasVariant1 = 256,
-    HasVariant2 = 512,
-    HasVariant3 = 1024,
+    None,
+    Wall,
+    Ground,
+    StartPoint,
+    ExitPoint,
+    WayPoint,
 }

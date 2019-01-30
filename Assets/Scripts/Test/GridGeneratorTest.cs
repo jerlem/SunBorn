@@ -20,6 +20,10 @@ public class GridGeneratorTest : MonoBehaviour {
     public GameObject GOGround;
     [SerializeField]
     public GameObject GOStartPoint;
+    [SerializeField]
+    public GameObject GOWayPoint;
+    [SerializeField]
+    public GameObject GOExitPoint;
 
     // RandomWalk Values
     [SerializeField]
@@ -28,6 +32,18 @@ public class GridGeneratorTest : MonoBehaviour {
     int GridMaxLength;
     [SerializeField]
     int GridMinLenght;
+
+    [SerializeField]
+    int GridRoomFrequency;
+    int GridCurrentRoomFrequency;
+
+    [SerializeField]
+    int GridBiasPass;
+    private int GridCurrentBiasPass;
+
+    [SerializeField]
+    Vector2 WayPoint1;
+
 
     private int PointX;
     private int PointY;
@@ -86,7 +102,8 @@ public class GridGeneratorTest : MonoBehaviour {
 
         // Prng init with seed value  
         PseudoRandom = new Prng();
-        PseudoRandom.Seed(PrngSeed);        
+        PseudoRandom.Seed(PrngSeed);
+        GridCurrentRoomFrequency = GridRoomFrequency;
     }
 
     /*
@@ -112,6 +129,12 @@ public class GridGeneratorTest : MonoBehaviour {
             case EEnvironmentBlock.StartPoint:
                 Instantiate(GOStartPoint, new Vector3(-oX, 0, -oZ), Quaternion.identity, transform);
                 break;
+            case EEnvironmentBlock.WayPoint:
+                Instantiate(GOWayPoint, new Vector3(-oX, 0, -oZ), Quaternion.identity, transform);
+                break;
+            case EEnvironmentBlock.ExitPoint:
+                Instantiate(GOExitPoint, new Vector3(-oX, 0, -oZ), Quaternion.identity, transform);
+                break;
         }
 
         // do we move the point X and y ?
@@ -120,6 +143,37 @@ public class GridGeneratorTest : MonoBehaviour {
         }
     }
 
+    private void PlaceRoom(Edirection direction, int h, int l)
+    {
+        // hold temp pointer
+        int tx = PointX;
+        int tz = PointY;
+         
+        Debug.Log("RandomWalk - Making a ("+ h +"x"+ l +")room in direction " + direction);
+
+        // swap orientation
+        if (direction == Edirection.Up || direction == Edirection.Down)
+        {
+            int temp = l;
+            l = h;
+            h = temp;
+        }
+
+        // place Room
+        while (h > 0)
+        {
+            PlaceTunnel(direction, l);
+            PointY++;
+            h--;
+            PointX = tx -1;
+        }
+
+        // get back in good position
+        PointX = tx;
+        PointY = tz;
+        PlaceTunnel(direction, l);
+       
+    }
 
     /*
      *  PlaceTunnel :
@@ -152,12 +206,12 @@ public class GridGeneratorTest : MonoBehaviour {
                 lenght--;
             } else
             {
-                Debug.Log("RandomWalk - Border reached, at " + PointX + "/" + PointY);
+                Debug.Log("RandomWalk - Border reached, at " + PointX + ";" + PointY);
                 return;
             }
         }
 
-        Debug.Log("RandomWalk - Dig finished at "+ PointX +"/" + PointY);
+        Debug.Log("RandomWalk - Dig finished at "+ PointX +";" + PointY);
     }
 
     /*
@@ -184,20 +238,41 @@ public class GridGeneratorTest : MonoBehaviour {
 
         // Set the Start point
         int pos = PseudoRandom.NextRange(1, GridWidth - 1);
-        Debug.Log("RandomWalk - Entry point set at 0/ " + pos );
         SetGridBlock(0, pos, EEnvironmentBlock.StartPoint, true);
+        Debug.Log("RandomWalk - Entry point set at 0;" + pos );
+
+        // Set the Exit point
+        //pos = PseudoRandom.NextRange(1, GridWidth - 1);
+        SetGridBlock(GridHeight-1, GridWidth - pos, EEnvironmentBlock.ExitPoint);
+        Debug.Log("RandomWalk - Exit point set at "+ GridWidth +";" + pos);
+
+        // Put a Way point at the center
+        SetGridBlock(GridHeight / 2, GridWidth / 2, EEnvironmentBlock.WayPoint);
+        Debug.Log("RandomWalk - Way point set at " + GridWidth/2 + ";" + GridHeight/2);
 
         PlaceTunnel(Edirection.Up, 10);
+        PlaceRoom(Edirection.Up, 4, 4);
 
         while (GridMaxTunnels > 0)
         {
             int x = PointX;
             int y = PointY;
-
+            // place tunnels
             PlaceTunnel(CurrentDirection, PseudoRandom.NextRange(GridMinLenght, GridMaxLength));
+            
+            // and some rooms
+            GridCurrentRoomFrequency--;
+            if (GridCurrentRoomFrequency < 1)
+            {
+                GridCurrentRoomFrequency = GridRoomFrequency;
+                PlaceRoom(CurrentDirection, 3, 3);
+            }
+
             Turn();
 
-            if (x != PointX || y != PointY) GridMaxTunnels--;
+            // Cost Too many time
+            // if (x != PointX || y != PointY) GridMaxTunnels--;
+            GridMaxTunnels--;
         }
 
     }
